@@ -1,4 +1,4 @@
-module ServiceCenter
+module github.com/zuishabi/ServiceCenter
 
 go 1.24
 
