@@ -1,8 +1,8 @@
-package src
+package ZSC
 
 import (
-	"ServiceCenter/src/msg"
 	"fmt"
+	"github.com/zuishabi/ServiceCenter/src/msg"
 	"google.golang.org/protobuf/proto"
 	"net"
 	"sync"

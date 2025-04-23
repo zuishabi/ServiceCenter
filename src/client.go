@@ -1,10 +1,10 @@
-package src
+package ZSC
 
 import (
-	"ServiceCenter/src/msg"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/zuishabi/ServiceCenter/src/msg"
 	"google.golang.org/protobuf/proto"
 	"io"
 	"net"
