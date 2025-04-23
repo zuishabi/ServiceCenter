@@ -1,0 +1,25 @@
+syntax="proto3";
+
+option go_package = "/msg";
+
+// id = 1
+// 用于服务向服务中心提交心跳包
+message HeartBeat{
+  string name = 1;
+}
+
+// id = 2
+// 用于服务中心向各个服务传递所感兴趣的服务的上下线信息
+message ServiceInfo{
+  string name = 1;
+  string ip = 2;
+  int64 port = 3;
+  uint32 status = 4;//服务的状态，1为上线，2为下线
+}
+
+// id = 3
+// 用于某些服务向服务注册中心查询其他服务的信息
+message ServiceStatusRequest{
+  string name = 1;
+  uint32 status = 2;
+}
