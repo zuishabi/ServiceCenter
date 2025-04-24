@@ -96,9 +96,10 @@ func (s *Service) processMsg(id uint32, m []byte) {
 	case 3:
 		inquiry := msg.ServiceStatusRequest{}
 		_ = proto.Unmarshal(m, &inquiry)
-		inquiry.Status = s.center.getServiceStatus(inquiry.Name)
-		data, _ := proto.Marshal(&inquiry)
-		if err := s.sendMsg(2, data); err != nil {
+		res := &msg.ServiceInfo{}
+		res = s.center.getServiceStatus(inquiry.Name)
+		data, _ := proto.Marshal(res)
+		if err := s.sendMsg(3, data); err != nil {
 			fmt.Println("send status info error,err = ", err)
 			return
 		}

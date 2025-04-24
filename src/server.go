@@ -149,12 +149,21 @@ func (s *ServiceCenter) registerService(service *Service) {
 	}
 }
 
-// 查询一个服务是否在线
-func (s *ServiceCenter) getServiceStatus(name string) uint32 {
+// 获取一个服务的状态信息
+func (s *ServiceCenter) getServiceStatus(name string) *msg.ServiceInfo {
 	s.statusLock.Lock()
 	defer s.statusLock.Unlock()
-	if s.serviceStatus[name] == nil {
-		return 2
+	if status := s.serviceStatus[name]; status == nil {
+		return &msg.ServiceInfo{
+			Name:   name,
+			Status: 2,
+		}
+	} else {
+		return &msg.ServiceInfo{
+			Name:   status.Name,
+			Ip:     status.IP,
+			Port:   int64(status.Port),
+			Status: 1,
+		}
 	}
-	return 1
 }
