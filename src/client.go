@@ -12,20 +12,21 @@ import (
 )
 
 type Client struct {
-	IP                 string
-	port               int
-	Name               string
-	InterestingService []string
-	ServiceCenterAddr  string
-	*net.TCPConn
+	IP                          string
+	Port                        int
+	Name                        string
+	InterestingService          []string
+	ServiceCenterAddr           string
+	conn                        *net.TCPConn
 	OnInterestingServiceOnline  func(info *msg.ServiceInfo)
 	OnInterestingServiceOffline func(string)
+	OnCenterDisconnected        func()
 }
 
 func NewClient(ip string, port int, name string, interestingService []string, serviceCenterAddr string) *Client {
 	return &Client{
 		IP:                 ip,
-		port:               port,
+		Port:               port,
 		Name:               name,
 		InterestingService: interestingService,
 		ServiceCenterAddr:  serviceCenterAddr,
@@ -42,6 +43,11 @@ func (c *Client) RegisterOfflineFunc(f func(string)) {
 	c.OnInterestingServiceOffline = f
 }
 
+// RegisterCenterDisconnectedFunc 注册当与注册中心断开连接后触发的回调函数
+func (c *Client) RegisterCenterDisconnectedFunc(f func()) {
+	c.OnCenterDisconnected = f
+}
+
 // Start 开始与服务注册中心的连接
 func (c *Client) Start() error {
 	addr, err := net.ResolveTCPAddr("tcp", c.ServiceCenterAddr)
@@ -52,11 +58,11 @@ func (c *Client) Start() error {
 	if err != nil {
 		return err
 	}
-	c.TCPConn = conn
+	c.conn = conn
 	d := json.NewEncoder(conn)
 	serviceInfo := ServiceInfo{
 		IP:                 c.IP,
-		Port:               c.port,
+		Port:               c.Port,
 		Name:               c.Name,
 		InterestingService: c.InterestingService,
 	}
@@ -71,19 +77,19 @@ func (c *Client) Start() error {
 func (c *Client) startRead() {
 	for {
 		msgID := make([]byte, 4)
-		if _, err := io.ReadFull(c, msgID); err != nil {
+		if _, err := io.ReadFull(c.conn, msgID); err != nil {
 			fmt.Println("get msg id error,err = ", err)
 			break
 		}
 		id := binary.BigEndian.Uint32(msgID)
 		msgLen := make([]byte, 4)
-		if _, err := io.ReadFull(c, msgLen); err != nil {
+		if _, err := io.ReadFull(c.conn, msgLen); err != nil {
 			fmt.Println("get msg len error,err = ", err)
 			break
 		}
 		length := binary.BigEndian.Uint32(msgLen)
 		m := make([]byte, length)
-		if _, err := io.ReadFull(c, m); err != nil {
+		if _, err := io.ReadFull(c.conn, m); err != nil {
 			fmt.Println("get msg error,err = ", err)
 			break
 		}
@@ -110,15 +116,15 @@ func (c *Client) processMsg(id uint32, m []byte) {
 func (c *Client) SendMsg(id uint32, msg []byte) error {
 	msgID := make([]byte, 4)
 	binary.BigEndian.PutUint32(msgID, id)
-	if _, err := c.TCPConn.Write(msgID); err != nil {
+	if _, err := c.conn.Write(msgID); err != nil {
 		return err
 	}
 	msgLen := make([]byte, 4)
 	binary.BigEndian.PutUint32(msgLen, uint32(len(msg)))
-	if _, err := c.TCPConn.Write(msgLen); err != nil {
+	if _, err := c.conn.Write(msgLen); err != nil {
 		return err
 	}
-	if _, err := c.TCPConn.Write(msg); err != nil {
+	if _, err := c.conn.Write(msg); err != nil {
 		return err
 	}
 	return nil
@@ -126,7 +132,7 @@ func (c *Client) SendMsg(id uint32, msg []byte) error {
 
 // StopService 关闭当前服务
 func (c *Client) StopService() {
-	_ = c.Close()
+	_ = c.conn.Close()
 }
 
 // 开始传输心跳包
