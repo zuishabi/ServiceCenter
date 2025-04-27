@@ -19,7 +19,7 @@ type Client struct {
 	Name                        string
 	InterestingService          []string
 	ServiceCenterAddr           string
-	OnInterestingServiceOnline  func(info *msg.ServiceInfo)
+	OnInterestingServiceOnline  func(info *ServiceStatus)
 	OnInterestingServiceOffline func(string)
 	OnCenterDisconnected        func()
 	TimeoutTime                 int //向服务器查询的超时时间
@@ -43,7 +43,7 @@ func NewClient(ip string, port int, name string, interestingService []string, se
 		InterestingService:     interestingService,
 		ServiceCenterAddr:      serviceCenterAddr,
 		getServiceStatusBuffer: make(map[string]chan ServiceStatus),
-		TimeoutTime:            10,
+		TimeoutTime:            1000,
 	}
 }
 
@@ -74,7 +74,7 @@ func (c *Client) Start() error {
 }
 
 // RegisterOnlineFunc 注册当感兴趣的服务上线时触发的回调函数
-func (c *Client) RegisterOnlineFunc(f func(info *msg.ServiceInfo)) {
+func (c *Client) RegisterOnlineFunc(f func(info *ServiceStatus)) {
 	c.OnInterestingServiceOnline = f
 }
 
@@ -88,7 +88,7 @@ func (c *Client) RegisterCenterDisconnectedFunc(f func()) {
 	c.OnCenterDisconnected = f
 }
 
-// SetTimeoutTime 设置客户端向服务器交互的超时时间，默认为10mil
+// SetTimeoutTime 设置客户端向服务器交互的超时时间，默认为1000mil
 func (c *Client) SetTimeoutTime(time int) {
 	c.TimeoutTime = time
 }
@@ -152,7 +152,12 @@ func (c *Client) processMsg(id uint32, m []byte) {
 		info := msg.ServiceInfo{}
 		_ = proto.Unmarshal(m, &info)
 		if info.Status == 1 && c.OnInterestingServiceOnline != nil {
-			c.OnInterestingServiceOnline(&info)
+			c.OnInterestingServiceOnline(&ServiceStatus{
+				Name:   info.Name,
+				IP:     info.Ip,
+				Port:   int(info.Port),
+				Status: info.Status,
+			})
 		} else if info.Status == 2 && c.OnInterestingServiceOffline != nil {
 			c.OnInterestingServiceOffline(info.Name)
 		}
