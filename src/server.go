@@ -147,6 +147,21 @@ func (s *ServiceCenter) registerService(service *Service) {
 		}
 		s.interestingServices[v][service.Name] = service
 	}
+	if s.interestingServices[service.Name] != nil {
+		onlineMsg := msg.ServiceInfo{
+			Name:   service.Name,
+			Ip:     service.IP,
+			Port:   int64(service.Port),
+			Status: 1,
+		}
+		d, _ := proto.Marshal(&onlineMsg)
+		for _, v := range s.interestingServices[service.Name] {
+			if err := v.sendMsg(2, d); err != nil {
+				fmt.Println("send online msg error,err = ", err)
+				continue
+			}
+		}
+	}
 }
 
 // 获取一个服务的状态信息
