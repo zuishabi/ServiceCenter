@@ -98,7 +98,6 @@ func (s *Service) processMsg(id uint32, m []byte) {
 		_ = proto.Unmarshal(m, &heartbeat)
 		s.center.updateHeartBeat(s.Name)
 	case 3:
-		fmt.Println("a")
 		inquiry := msg.ServiceStatusRequest{}
 		_ = proto.Unmarshal(m, &inquiry)
 		res := &msg.ServiceInfo{}

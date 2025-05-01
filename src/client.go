@@ -175,16 +175,13 @@ func (c *Client) processMsg(id uint32, m []byte) {
 		}
 		c.getServiceStatusBufferLock.Lock()
 		defer c.getServiceStatusBufferLock.Unlock()
-		fmt.Println(2)
 		if ch := c.getServiceStatusBuffer[status.Name]; ch != nil {
-			fmt.Println(3)
 			ch <- ServiceStatus{
 				IP:     status.Ip,
 				Port:   int(status.Port),
 				Name:   status.Name,
 				Status: status.Status,
 			}
-			fmt.Println(4)
 		}
 	default:
 		fmt.Println("unknown msg id = ", id)
@@ -218,7 +215,6 @@ func (c *Client) registerGetServiceStatus(name string, ch chan ServiceStatus) {
 	c.getServiceStatusBufferLock.Lock()
 	defer c.getServiceStatusBufferLock.Unlock()
 	c.getServiceStatusBuffer[name] = ch
-	fmt.Println(1)
 }
 
 func (c *Client) deleteGetServiceStatus(name string) {
