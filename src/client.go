@@ -26,6 +26,7 @@ type Client struct {
 	conn                        *net.TCPConn
 	getServiceStatusBufferLock  sync.Mutex
 	getServiceStatusBuffer      map[string]chan ServiceStatus
+	connLock                    sync.Mutex
 }
 
 type ServiceStatus struct {
@@ -129,6 +130,8 @@ func (c *Client) startHeartBeat() {
 }
 
 func (c *Client) sendMsg(id uint32, msg []byte) error {
+	c.connLock.Lock()
+	defer c.connLock.Unlock()
 	msgID := make([]byte, 4)
 	binary.BigEndian.PutUint32(msgID, id)
 	if _, err := c.conn.Write(msgID); err != nil {
@@ -150,7 +153,10 @@ func (c *Client) processMsg(id uint32, m []byte) {
 	switch id {
 	case 2:
 		info := msg.ServiceInfo{}
-		_ = proto.Unmarshal(m, &info)
+		err := proto.Unmarshal(m, &info)
+		if err != nil {
+			fmt.Println(err)
+		}
 		if info.Status == 1 && c.OnInterestingServiceOnline != nil {
 			c.OnInterestingServiceOnline(&ServiceStatus{
 				Name:   info.Name,
@@ -163,16 +169,22 @@ func (c *Client) processMsg(id uint32, m []byte) {
 		}
 	case 3:
 		status := msg.ServiceInfo{}
-		_ = proto.Unmarshal(m, &status)
+		err := proto.Unmarshal(m, &status)
+		if err != nil {
+			fmt.Println(err)
+		}
 		c.getServiceStatusBufferLock.Lock()
 		defer c.getServiceStatusBufferLock.Unlock()
+		fmt.Println(2)
 		if ch := c.getServiceStatusBuffer[status.Name]; ch != nil {
+			fmt.Println(3)
 			ch <- ServiceStatus{
 				IP:     status.Ip,
 				Port:   int(status.Port),
 				Name:   status.Name,
 				Status: status.Status,
 			}
+			fmt.Println(4)
 		}
 	default:
 		fmt.Println("unknown msg id = ", id)
@@ -206,6 +218,7 @@ func (c *Client) registerGetServiceStatus(name string, ch chan ServiceStatus) {
 	c.getServiceStatusBufferLock.Lock()
 	defer c.getServiceStatusBufferLock.Unlock()
 	c.getServiceStatusBuffer[name] = ch
+	fmt.Println(1)
 }
 
 func (c *Client) deleteGetServiceStatus(name string) {

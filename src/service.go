@@ -8,11 +8,13 @@ import (
 	"google.golang.org/protobuf/proto"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
 // Service 定义具体的服务，保存在服务注册中心中
 type Service struct {
+	connLock      sync.Mutex
 	conn          *net.TCPConn
 	center        *ServiceCenter
 	heartbeatTime time.Time
@@ -70,6 +72,8 @@ func (s *Service) start() {
 
 // 向服务写入消息
 func (s *Service) sendMsg(id uint32, msg []byte) error {
+	s.connLock.Lock()
+	defer s.connLock.Unlock()
 	msgID := make([]byte, 4)
 	binary.BigEndian.PutUint32(msgID, id)
 	if _, err := s.conn.Write(msgID); err != nil {
@@ -94,6 +98,7 @@ func (s *Service) processMsg(id uint32, m []byte) {
 		_ = proto.Unmarshal(m, &heartbeat)
 		s.center.updateHeartBeat(s.Name)
 	case 3:
+		fmt.Println("a")
 		inquiry := msg.ServiceStatusRequest{}
 		_ = proto.Unmarshal(m, &inquiry)
 		res := &msg.ServiceInfo{}

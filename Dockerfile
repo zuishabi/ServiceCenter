@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 
 RUN ls -la
-RUN go build -o Server main.go
+RUN go build -o Server cmd/main.go
 
 
 # Deploy the application binary into a lean image
